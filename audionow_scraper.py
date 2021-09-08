@@ -52,7 +52,7 @@ class AudioNowShow:
 
     def get_show_html(self):
         url = 'https://audionow.de/podcast/{}'.format(self.show)
-        show_html = util.urlopen(url).read().decode()
+        show_html = util.urlopen(url).text
         return show_html
 
     def get_show_metadata(self) -> Show:
