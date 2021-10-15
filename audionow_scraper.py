@@ -105,6 +105,7 @@ class AudioNowSearchProvider(directory.Provider):
     def __init__(self):
         self.name = 'AudioNow Search'
         self.kind = directory.Provider.PROVIDER_SEARCH
+        self.icon = None
 
     def on_search(self, query):
         search = util.urlopen(f'https://api-v4.audionow.de/api/v4/search.json?q=*{query}*&page=1').json()
