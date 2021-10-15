@@ -25,18 +25,24 @@ class AudioNowShow:
 
     def get_show(self):
         content_media = util.urlopen('https://api-v4.audionow.de/api/v4/media/{}.json'.format(self.uuid)).json()
-        content_episodes = util.urlopen('https://api-v4.audionow.de/api/v4/podcast/{}/episodes.json'.format(self.uuid)).json()
         tagged_episodes = []
-        for episode in content_episodes['data']:
-            tagged_episodes.append(Episode(
-                episode["mediaURL"],
-                episode["description"],
-                episode["title"],
-                episode["uid"],
-                datetime.datetime.fromisoformat(episode["publicationDate"]).timestamp(),
-                episode["duration"],
-                episode["fileSize"]
-            ))
+        page_number = 1
+        while True:
+            content_episodes = util.urlopen(
+                f'https://api-v4.audionow.de/api/v4/podcast/{self.uuid}/episodes.json?page={page_number}').json()
+            for episode in content_episodes['data']:
+                tagged_episodes.append(Episode(
+                    episode["mediaURL"],
+                    episode["description"],
+                    episode["title"],
+                    episode["uid"],
+                    datetime.datetime.fromisoformat(episode["publicationDate"]).timestamp(),
+                    episode["duration"],
+                    episode["fileSize"]
+                ))
+            if content_episodes['meta']['pagination']["total_pages"] <= page_number:
+                break
+            page_number += 1
         image_resolution = max(map(int, content_media["imageInfo"]["variantSourceWidths"]))
         image_url = content_media['imageInfo']["optimizedImageUrls"][str(image_resolution)]
         return Show(tagged_episodes, content_media["description"], content_media["title"], image_url)
