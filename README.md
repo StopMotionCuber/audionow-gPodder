@@ -19,9 +19,14 @@ Short summary for Linux/macOS users:
 
 ### Usage
 To use this gPodder extension, make sure that it is installed.
-After installation, you can include any link from an AudioNow podcast with the "Add podcast via URL" link.
-[Here](https://audionow.de/podcast) you can find a list of Podcast and choose a link from there.
 
+#### Add podcast with known link
+After installation, you can include any link from an AudioNow podcast with the "Add podcast via URL" link, if you
+know the link of a podcast.
+
+#### Search for podcast
+Searching for a podcast is possible via the "Subscriptions -> Discover new Podcasts" window.
+This plugin adds an option to search for AudioNow podcasts
 
 ### Credits
 First of all I want to credit gPodder and the Extension system. Without this system, the extension would have been much more complicated. 
