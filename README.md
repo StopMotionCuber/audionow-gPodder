@@ -3,14 +3,12 @@ This project is an unofficial Extension for gPodder which adds support to [Audio
 
 ### Dependencies
 `gPodder`: As this is an extension for gPodder, obviously gPodder needs to be installed
-`lxml`: Used to parse HTML files
 
 
 ### Installation
 There is a guide how to install gPodder extensions [here](https://gpodder.github.io/docs/extensions.html).
 
 Short summary for Linux/macOS users:
- - Make sure that `lxml` is installed in the Python environment that you use for gPodder
  - Create `~/gPodder/Extensions` folder (if it does not exist)
  - Place the `audionow_scraper.py` in this folder as `~/gPodder/Extensions/audionow_scraper.py`
  - Restart gPodder (if it was running)

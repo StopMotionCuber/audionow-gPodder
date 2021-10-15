@@ -2,10 +2,8 @@ import datetime
 import logging
 import re
 from collections import namedtuple
-import time
 from typing import Mapping
 
-from lxml import html
 from gpodder import model, feedcore, util, registry
 from gpodder.model import PodcastChannel, PodcastEpisode
 
@@ -17,55 +15,31 @@ __description__ = 'Use AudioNow as a source for Podcasts'
 __only_for__ = 'gtk, cli'
 __authors__ = 'Ruben Simons <ruben-github@sim0ns.de>'
 
-Episode = namedtuple("Episode", ("audio_url", "description", "title", "guid", "date", "duration"))
+Episode = namedtuple("Episode", ("audio_url", "description", "title", "guid", "date", "duration", "filesize"))
 Show = namedtuple("Show", ("episodes", "description", "title", "image_url"))
 
 
 class AudioNowShow:
-    def __init__(self, show):
-        self.show = show
+    def __init__(self, uuid):
+        self.uuid = uuid
 
-    @staticmethod
-    def parse_html(html_code):
-        tree = html.fromstring(html_code)
-        description = tree.xpath('//div[@class="desc-text"]/p/text()')[0]
-        image_url = tree.xpath('//meta[@property="og:image"]')[0].attrib['content']
-        episodes = tree.xpath('//div[@class="podcast-episode"]')
-        title = tree.xpath('//h1[@class="podcast-title"]/text()')[0]
+    def get_show(self):
+        content_media = util.urlopen('https://api-v4.audionow.de/api/v4/media/{}.json'.format(self.uuid)).json()
+        content_episodes = util.urlopen('https://api-v4.audionow.de/api/v4/podcast/{}/episodes.json'.format(self.uuid)).json()
         tagged_episodes = []
-        for episode in episodes:
-            title = episode.attrib['data-audiotitle']
-            url = episode.attrib['data-audiolink']
-            episode_description = "\n".join(episode.xpath('.//p/text()'))
-            guid = episode.attrib['data-epid']
-            duration = episode.xpath('.//div[@class="ep-duration"]/span/text()')[0]
-            durations = duration.split(":")
-            duration_seconds = 0
-            for item in durations:
-                duration_seconds *= 60
-                duration_seconds += int(item)
-            date = episode.xpath('.//div[@class="ep-date"]/span/text()')[0]
-            match = re.search(r"(\d+).(\d+).(\d+)", date)
-            timestamp = time.mktime(datetime.datetime(int(match.group(3)), int(match.group(2)), int(match.group(1))).timetuple())
-            tagged_episodes.append(Episode(url, episode_description, title, guid, timestamp, duration_seconds))
-        return Show(tagged_episodes, description, title, image_url)
-
-    def get_show_html(self):
-        url = 'https://audionow.de/podcast/{}'.format(self.show)
-        show_html = util.urlopen(url).text
-        return show_html
-
-    def get_show_metadata(self) -> Show:
-        return self.parse_html(self.get_show_html())
-
-
-def file_metadata(url):
-    track_fp = util.urlopen(url)
-    headers = track_fp.info()
-    filesize = headers['content-length'] or '0'
-    filetype = headers['content-type'] or 'application/octet-stream'
-    track_fp.close()
-    return filesize, filetype
+        for episode in content_episodes['data']:
+            tagged_episodes.append(Episode(
+                episode["mediaURL"],
+                episode["description"],
+                episode["title"],
+                episode["uid"],
+                datetime.datetime.fromisoformat(episode["publicationDate"]).timestamp(),
+                episode["duration"],
+                episode["fileSize"]
+            ))
+        image_resolution = max(map(int, content_media["imageInfo"]["variantSourceWidths"]))
+        image_url = content_media['imageInfo']["optimizedImageUrls"][str(image_resolution)]
+        return Show(tagged_episodes, content_media["description"], content_media["title"], image_url)
 
 
 class AudioNowFeed(model.Feed):
@@ -85,7 +59,7 @@ class AudioNowFeed(model.Feed):
 
     def __init__(self, show_name, max_episodes):
         self.show = show_name
-        self.metadata = AudioNowShow(show_name).get_show_metadata()
+        self.metadata = AudioNowShow(show_name).get_show()
         self.max_episodes = max_episodes
 
     def get_title(self):
@@ -114,7 +88,8 @@ class AudioNowFeed(model.Feed):
                 "url": episode.audio_url,
                 "guid": episode.guid,
                 "title": episode.title,
-                "total_time": episode.duration
+                "total_time": episode.duration,
+                "file_size": episode.filesize
             })
             all_episodes.append(episode)
         return all_episodes, all_seen_episodes
