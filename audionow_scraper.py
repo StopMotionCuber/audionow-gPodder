@@ -2,11 +2,8 @@ import datetime
 import logging
 import re
 from collections import namedtuple
-import time
-import json
 from typing import Mapping
 
-from lxml import html
 from gpodder import model, feedcore, util, registry
 from gpodder.model import PodcastChannel, PodcastEpisode
 
