@@ -4,7 +4,7 @@ import re
 from collections import namedtuple
 from typing import Mapping
 
-from gpodder import model, feedcore, util, registry
+from gpodder import model, feedcore, util, registry, directory
 from gpodder.model import PodcastChannel, PodcastEpisode
 
 logger = logging.getLogger(__name__)
@@ -101,6 +101,24 @@ class AudioNowFeed(model.Feed):
         return all_episodes, all_seen_episodes
 
 
+class AudioNowSearchProvider(directory.Provider):
+    def __init__(self):
+        self.name = 'AudioNow Search'
+        self.kind = directory.Provider.PROVIDER_SEARCH
+        self.icon = None
+
+    def on_search(self, query):
+        search = util.urlopen(f'https://api-v4.audionow.de/api/v4/search.json?q=*{query}*&page=1').json()
+        to_return = []
+        for result in search["data"]:
+            to_return.append(directory.DirectoryEntry(
+                result["title"],
+                f"https://audionow.de/podcast/{result['uid']}",
+                description=result["subtitle"]
+            ))
+        return to_return
+
+
 class gPodderExtension:
     # The extension will be instantiated the first time it's used.
     # You can do some sanity checks here and raise an Exception if
@@ -114,6 +132,7 @@ class gPodderExtension:
     def on_load(self):
         logger.info('AudioNow Scraper is being loaded.')
         registry.feed_handler.register(AudioNowFeed.fetch_channel)
+        directory.PROVIDERS.append(AudioNowSearchProvider)
 
     # This function will be called when the extension is disabled or
     # when gPodder shuts down. You can use this to destroy/delete any
@@ -122,6 +141,10 @@ class gPodderExtension:
         logger.info('AudioNow Scraper is being unloaded.')
         try:
             registry.feed_handler.unregister(AudioNowFeed.fetch_channel)
+        except ValueError:
+            pass
+        try:
+            directory.PROVIDERS.remove(AudioNowSearchProvider)
         except ValueError:
             pass
 
